@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Workflow Assistant</title>
+<style>
+  :root {
+    --bg-color: #f7f9fa; --card-bg: #ffffff; --text-main: #15233f; --text-sub: #6a7280;
+    --border: #e5e7eb; --primary: #111827; --primary-hover: #374151; --blue: #2563eb;
+    --green: #16a34a; --green-bg: #dcfce7; --gray-bg: #f3f4f6; --radius: 12px;
+  }
+  * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  body { background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; line-height: 1.5; }
+  
+  /* 辅助类 & 通用组件 */
+  .hidden { display: none !important; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+  .btn-primary { background-color: var(--primary); color: #fff; }
+  .btn-primary:hover { background-color: var(--primary-hover); }
+  .btn-outline { border-color: var(--border); background: var(--card-bg); color: var(--text-main); }
+  .btn-outline:hover { background: var(--gray-bg); }
+  
+  /* 布局容器 */
+  .app-container { max-width: 800px; margin: 0 auto; padding: 20px; min-height: 100vh; }
+  
+  /* 顶部导航 */
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+  .header-brand { display: flex; align-items: center; gap: 10px; }
+  .header-brand .icon { width: 32px; height: 32px; background: #e5e7eb; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+  .header-title h1 { font-size: 16px; margin: 0; }
+  .header-title p { font-size: 12px; color: var(--text-sub); margin: 0; }
+  .user-profile { font-size: 13px; color: var(--text-sub); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .user-profile:hover { color: var(--primary); }
+
+  /* 登录/身份选择页 */
+  .login-card { background: var(--card-bg); padding: 40px; border-radius: var(--radius); border: 1px solid var(--border); max-width: 400px; margin: 100px auto; text-align: center; }
+  .login-card input { width: 100%; padding: 10px; margin: 10px 0 20px; border: 1px solid var(--border); border-radius: 6px; }
+  .role-select { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+  .role-select label { padding: 10px 20px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+  .role-select input:checked + label { border-color: var(--primary); font-weight: bold; background: var(--gray-bg); }
+  .role-select input { display: none; }
+
+  /* Dashboard 样式 */
+  .dashboard-header h2 { font-size: 24px; margin: 0 0 5px 0; }
+  .dashboard-header p { color: var(--text-sub); font-size: 13px; margin: 0 0 20px 0; }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
+  .stat-card { background: var(--card-bg); border: 1px solid var(--border); padding: 16px; border-radius: var(--radius); }
+  .stat-card .label { font-size: 12px; color: var(--text-sub); margin-bottom: 8px; }
+  .stat-card .val { font-size: 28px; font-weight: bold; }
+  
+  .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+  .list-header h3 { margin: 0; font-size: 18px; }
+  .search-box { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 20px; outline: none; }
+  
+  .tabs { display: flex; background: var(--card-bg); border-radius: var(--radius); padding: 4px; border: 1px solid var(--border); margin-bottom: 20px; }
+  .tab { flex: 1; text-align: center; padding: 8px; cursor: pointer; font-size: 13px; border-radius: 8px; color: var(--text-sub); }
+  .tab.active { background: var(--gray-bg); color: var(--primary); font-weight: 500; }
+  
+  .project-card { background: var(--card-bg); border: 1px solid var(--border); padding: 20px; border-radius: var(--radius); margin-bottom: 15px; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+  .project-title { font-size: 16px; font-weight: bold; margin: 0 0 4px 0; }
+  .project-id { font-size: 13px; color: var(--text-sub); margin: 0; }
+  .status-badge { font-size: 12px; padding: 4px 10px; border-radius: 100px; background: var(--gray-bg); color: var(--text-main); font-weight: 500; }
+  .status-badge.done { background: var(--green-bg); color: var(--green); }
+  
+  .step-info { font-size: 13px; margin-bottom: 12px; display: flex; justify-content: space-between; }
+  .step-info .label { color: var(--text-sub); }
+  
+  .progress-wrap { margin-bottom: 20px; }
+  .progress-bg { height: 6px; background: var(--gray-bg); border-radius: 3px; overflow: hidden; }
+  .progress-bar { height: 100%; background: var(--blue); border-radius: 3px; }
+  .progress-bar.done { background: var(--green); }
+  
+  .card-bottom { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-sub); }
+
+  /* 工作流执行界面 (Wizard) */
+  .wizard-card { background: var(--card-bg); border: 1px solid var(--border); padding: 30px; border-radius: var(--radius); }
+  .wizard-header { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .wizard-title { font-size: 18px; font-weight: bold; margin: 0 0 4px 0; }
+  .wizard-sub { font-size: 13px; color: var(--text-sub); }
+  
+  /* CSM 专属样式 */
+  .script-box { background: var(--gray-bg); padding: 16px; border-radius: 8px; font-family: monospace; font-size: 13px; white-space: pre-wrap; margin-bottom: 20px; border: 1px solid var(--border); }
+  .actions { display: flex; gap: 10px; justify-content: flex-end; }
+  
+  /* IE 专属样式 */
+  .checklist-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; }
+  .checklist-item label { font-size: 14px; font-weight: 500; flex: 1; cursor: pointer; }
+  .checklist-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+  
+  /* Toast 提示 */
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  
+  <!-- 登录视图 -->
+  <div id="view-login">
+    <div class="login-card">
+      <div class="header-brand" style="justify-content: center; margin-bottom: 20px;">
+        <div class="icon">AI</div>
+        <div class="header-title" style="text-align: left;">
+          <h1>AI Workflow Assistant</h1>
+          <p>impact.com 内部流程助手</p>
+        </div>
+      </div>
+      <h3 style="margin-bottom: 20px; font-size: 16px;">请输入您的姓名和职务</h3>
+      <input type="text" id="login-name" placeholder="例如: Tree / 示例用户" value="Tree">
+      <div class="role-select">
+        <input type="radio" name="role" id="role-csm" value="CSM" checked>
+        <label for="role-csm">CSM 客户成功</label>
+        <input type="radio" name="role" id="role-ie" value="IE">
+        <label for="role-ie">IE 集成工程</label>
+      </div>
+      <button class="btn btn-primary" style="width: 100%;" onclick="app.login()">进入工作台</button>
+    </div>
+  </div>
+
+  <!-- Dashboard 视图 -->
+  <div id="view-dashboard" class="hidden">
+    <div class="header">
+      <div class="header-brand">
+        <div class="icon">AI</div>
+        <div class="header-title">
+          <h1>AI Workflow Assistant</h1>
+          <p>CSM / IE 工作台</p>
+        </div>
+      </div>
+      <div class="user-profile" onclick="app.logout()">
+        👤 <span id="display-user">示例用户 · CSM</span> (退出)
+      </div>
+    </div>
+
+    <div class="dashboard-header">
+      <h2>我的 AOR 项目</h2>
+      <p>管理客户 AOR 需求、报价、合同及内部交接流程。</p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="label">全部项目</div><div class="val">3</div></div>
+      <div class="stat-card"><div class="label">进行中</div><div class="val">2</div></div>
+      <div class="stat-card"><div class="label">已完成</div><div class="val">1</div></div>
+    </div>
+
+    <div class="list-header">
+      <h3>客户项目列表</h3>
+      <button class="btn btn-primary" onclick="app.toast('功能开发中')">+ 新建 AOR</button>
+    </div>
+
+    <input type="text" class="search-box" placeholder="搜索客户名称或 Program ID">
+
+    <div class="tabs">
+      <div class="tab active">全部</div>
+      <div class="tab">进行中</div>
+      <div class="tab">已完成</div>
+    </div>
+
+    <div id="project-list">
+      <!-- 动态渲染列表 -->
+    </div>
+  </div>
+
+  <!-- CSM 工作流视图: 发送需求表 -->
+  <div id="view-step-csm" class="hidden">
+    <div class="header">
+      <div class="user-profile" onclick="app.showDashboard()">← 返回大盘</div>
+    </div>
+    <div class="wizard-card">
+      <div class="wizard-header">
+        <h2 class="wizard-title">邀请客户填写 AOR 技术需求表</h2>
+        <div class="wizard-sub">当前项目: <b id="csm-proj-name">Tinyland</b> (Program ID: <span id="csm-proj-id"></span>)</div>
+      </div>
+      <p style="font-size: 14px; margin-top:0;">系统已为您匹配专属表单链接，以下话术可直接复制发给客户：</p>
+      
+      <div class="script-box" id="csm-script">
+您好，
+为推进 AOR 技术需求对接，请填写以下表单：
+
+[专属链接将在此生成]
+
+我们将根据您提供的信息继续跟进，感谢配合！
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-outline" onclick="app.copyScript()">复制完整内容</button>
+        <button class="btn btn-outline" onclick="window.open('https://mail.google.com')">去 Gmail 发邮件</button>
+        <button class="btn btn-primary" onclick="app.completeStep()">已发送，下一步</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IE 工作流视图: Checklist 检查 -->
+  <div id="view-step-ie" class="hidden">
+    <div class="header">
+      <div class="user-profile" onclick="app.showDashboard()">← 返回大盘</div>
+    </div>
+    <div class="wizard-card">
+      <div class="wizard-header">
+        <h2 class="wizard-title">检查后台配置 (Technical Configuration)</h2>
+        <div class="wizard-sub">当前项目: <b id="ie-proj-name">Brand Alpha</b> | 负责人: <span id="ie-user"></span></div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <div class="checklist-item">
+          <label for="chk1">Promocode tracking (按需启用、配置并测试)</label>
+          <input type="checkbox" id="chk1">
+        </div>
+        <div class="checklist-item">
+          <label for="chk2">Update API (如客户使用，确认已测试)</label>
+          <input type="checkbox" id="chk2">
+        </div>
+        <div class="checklist-item">
+          <label for="chk3">All tracker tests (确认客户已完成测试)</label>
+          <input type="checkbox" id="chk3">
+        </div>
+        <div class="checklist-item">
+          <label for="chk4">Gateway settings / General (确认已配置)</label>
+          <input type="checkbox" id="chk4">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-outline" onclick="app.completeStep()">生成 Excel (导出记录)</button>
+        <button class="btn btn-primary" onclick="app.completeStep()">确认无误，下一步</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 全局提示框 -->
+<div id="toast" class="toast">操作成功</div>
+
+<script>
+const app = {
+  user: { name: '', role: '' },
+  currentProject: null,
+  
+  // 模拟数据库项目数据
+  projects: [
+    { id: 1, name: 'Tinyland', pid: '3118', step: '向客户发送技术需求表', role: 'CSM', progress: 38, status: 'active', time: '今天' },
+    { id: 2, name: 'Brand Alpha', pid: '4820', step: '创建 BC Ticket / 检查配置', role: 'IE', progress: 75, status: 'active', time: '昨天' },
+    { id: 3, name: 'Brand Beta', pid: '5901', step: '已交接 IE', role: 'CSM', progress: 100, status: 'done', time: '11月7日' }
+  ],
+
+  // 初始化与视图切换
+  switchView(viewId) {
+    document.querySelectorAll('.app-container > div').forEach(el => el.classList.add('hidden'));
+    document.getElementById(viewId).classList.remove('hidden');
+  },
+
+  login() {
+    const name = document.getElementById('login-name').value.trim() || '示例用户';
+    const role = document.querySelector('input[name="role"]:checked').value;
+    this.user = { name, role };
+    document.getElementById('display-user').innerText = `${name} · ${role}`;
+    this.renderDashboard();
+    this.switchView('view-dashboard');
+  },
+
+  logout() {
+    this.user = { name: '', role: '' };
+    this.switchView('view-login');
+  },
+
+  showDashboard() {
+    this.renderDashboard();
+    this.switchView('view-dashboard');
+  },
+
+  // 渲染大盘项目卡片
+  renderDashboard() {
+    const listHtml = this.projects.map(p => {
+      const isDone = p.progress === 100;
+      const statusClass = isDone ? 'status-badge done' : 'status-badge';
+      const statusText = isDone ? '已完成' : '进行中';
+      const btnText = isDone ? '查看记录 →' : '继续任务 →';
+      const barClass = isDone ? 'progress-bar done' : 'progress-bar';
+      
+      return `
+        <div class="project-card">
+          <div class="card-top">
+            <div>
+              <h3 class="project-title">${p.name}</h3>
+              <p class="project-id">Program ID: ${p.pid}</p>
+            </div>
+            <div class="${statusClass}">${statusText}</div>
+          </div>
+          
+          <div class="step-info">
+            <span class="label">当前：${p.step}</span>
+            <span>${p.time}</span>
+          </div>
+          
+          <div class="progress-wrap">
+            <div class="progress-bg"><div class="${barClass}" style="width: ${p.progress}%"></div></div>
+          </div>
+          
+          <div class="card-bottom">
+            <span>${p.progress}% · 示意进度</span>
+            <button class="btn ${isDone ? 'btn-outline' : 'btn-primary'}" onclick="app.openWorkflow(${p.id})">${btnText}</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('project-list').innerHTML = listHtml;
+  },
+
+  // 打开任务流界面 (分流)
+  openWorkflow(projectId) {
+    this.currentProject = this.projects.find(p => p.id === projectId);
+    
+    if (this.currentProject.progress === 100) {
+      this.toast('该流程已完成，仅供查看记录。');
+      return;
+    }
+
+    // 根据当前登录用户的角色，路由到对应的页面模块
+    if (this.user.role === 'CSM') {
+      document.getElementById('csm-proj-name').innerText = this.currentProject.name;
+      document.getElementById('csm-proj-id').innerText = this.currentProject.pid;
+      
+      // 生成专属话术
+      const scriptText = `您好，
+为推进 AOR 技术需求对接，请填写以下表单：
+
+https://impact.com/forms/tech-req?csm=${encodeURIComponent(this.user.name)}&pid=${this.currentProject.pid}
+
+我们将根据您提供的信息继续跟进，感谢配合！`;
+      document.getElementById('csm-script').innerText = scriptText;
+      this.switchView('view-step-csm');
+    } else {
+      // IE 角色逻辑
+      document.getElementById('ie-proj-name').innerText = this.currentProject.name;
+      document.getElementById('ie-user').innerText = this.user.name;
+      
+      // 清空 checkbox 状态
+      document.querySelectorAll('#view-step-ie input[type="checkbox"]').forEach(cb => cb.checked = false);
+      this.switchView('view-step-ie');
+    }
+  },
+
+  // 复制话术功能
+  copyScript() {
+    const text = document.getElementById('csm-script').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      this.toast('话术及专属链接已复制');
+    });
+  },
+
+  // 完成当前步骤
+  completeStep() {
+    this.toast('步骤已确认，正在流转至下一步...');
+    setTimeout(() => {
+      this.currentProject.progress = 100;
+      this.currentProject.step = '流转下一环节';
+      this.showDashboard();
+    }, 800);
+  },
+
+  // 提示条
+  toast(msg) {
+    const el = document.getElementById('toast');
+    el.innerText = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2000);
+  }
+};
+</script>
+</body>
+</html>
